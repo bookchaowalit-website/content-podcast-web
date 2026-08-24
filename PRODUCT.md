@@ -10,6 +10,12 @@ Portfolio repository under Book Dev. This brief records ownership and the
 current honest status so the nested tree is not an empty shell in the task
 system.
 
+## Current product truth
+
+This is a local podcast episode index with search, category filters, and a
+selected episode reading card. It is a catalog surface only: no audio stream,
+subscription, host analytics, or remote feed is connected.
+
 ## Runnable path
 
 See `README.md` for install and run instructions when present.

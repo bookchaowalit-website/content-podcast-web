@@ -1,136 +1,68 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 
-function Shell({
-  title,
-  subtitle,
-  badge = "Portfolio demo · local-only",
-  children,
-}: {
-  title: string;
-  subtitle: string;
-  badge?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-black dark:text-zinc-100">
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <header className="mb-8">
-          <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">{badge}</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">{title}</h1>
-          <p className="mt-2 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">{subtitle}</p>
-        </header>
-        {children}
-        <footer className="mt-10 border-t border-zinc-200 pt-4 text-xs text-zinc-500 dark:border-zinc-800">
-          Honest demo: no multi-tenant backend. State (if any) stays in this browser.
-        </footer>
-      </div>
-    </div>
-  );
+type Episode = { id: string; title: string; category: string; summary: string; meta: string; transcript: string };
+const EPISODES: Episode[] = [
+  { id: "001", title: "Shipping in public", category: "Show", summary: "Why honest demos matter.", meta: "32 MIN / 18 AUG 2026", transcript: "A conversation about showing the boundary as part of the product: what works now, what is authored, and what is still a promise." },
+  { id: "002", title: "Guest: platform eng", category: "Interview", summary: "IDP lessons.", meta: "48 MIN / 04 AUG 2026", transcript: "A field note on internal platforms, the contracts that keep them useful, and the small signals that tell you when a system is too much." },
+  { id: "003", title: "The cost of another tab", category: "Tech", summary: "Attention as interface material.", meta: "21 MIN / 22 JUL 2026", transcript: "A quiet technical essay about defaults, retrieval, and building an index that makes the next choice lighter." },
+];
+const CATEGORIES = ["All", "Show", "Interview", "Tech"] as const;
+
+function SignalWave() {
+  return <svg className="signal-wave" viewBox="0 0 620 160" aria-hidden="true"><path d="M0 87h28l11-24 13 54 15-98 15 112 15-53 15 18 15-9 15 10 15-28 15 48 15-74 15 96 15-44 15 16 15-12 15 6 15-34 15 61 15-91 15 119 15-59 15 31 15-17 15 8 15-38 15 63 15-78 15 99 15-43 15 17 15-12 15 8 15-30 15 48 15-75 15 102 15-45 15 23 15-11 15 5 15-28 15 48 15-72 15 90 15-42 15 16 15-11 15 7 15-25 15 39 15-48 15 62 28 0" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square" /></svg>;
 }
-
-function Button({
-  children,
-  onClick,
-  variant = "primary",
-  disabled,
-  type = "button",
-  className = "",
-}: {
-  children: ReactNode;
-  onClick?: () => void;
-  variant?: "primary" | "secondary" | "ghost" | "danger";
-  disabled?: boolean;
-  type?: "button" | "submit";
-  className?: string;
-}) {
-  const base =
-    "inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition disabled:opacity-50 " +
-    className;
-  const styles =
-    variant === "primary"
-      ? "bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900"
-      : variant === "secondary"
-        ? "bg-white text-zinc-900 ring-1 ring-zinc-200 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700"
-        : variant === "danger"
-          ? "bg-red-600 text-white hover:bg-red-500"
-          : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900";
-  return (
-    <button type={type} disabled={disabled} onClick={onClick} className={`${base} ${styles}`}>
-      {children}
-    </button>
-  );
-}
-
-const inputClass =
-  "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none ring-zinc-400 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-950";
-
-function useLocalStorage<T>(key: string, initial: T) {
-  const [value, setValue] = useState<T>(initial);
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw != null) setValue(JSON.parse(raw) as T);
-    } catch {
-      /* ignore */
-    }
-    setReady(true);
-  }, [key]);
-  useEffect(() => {
-    if (!ready) return;
-    localStorage.setItem(key, JSON.stringify(value));
-  }, [key, value, ready]);
-  return [value, setValue] as const;
-}
-
-function uid() {
-  return crypto.randomUUID();
-}
-
-async function copyText(text: string) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-
-type Item = { id: string; title: string; category: string; summary: string; meta?: string };
-const ITEMS: Item[] = [{"id": "1", "title": "Shipping in public", "category": "Show", "summary": "Why honest demos matter.", "meta": "32 min"}, {"id": "2", "title": "Guest: platform eng", "category": "Interview", "summary": "IDP lessons.", "meta": "48 min"}];
-const CATS = ["Show", "Interview", "Tech"];
 
 export default function Home() {
-  const [q, setQ] = useState("");
-  const [cat, setCat] = useState("All");
-  const list = ITEMS.filter(
-    (i) =>
-      (cat === "All" || i.category === cat) &&
-      (i.title + i.summary + i.category).toLowerCase().includes(q.toLowerCase())
-  );
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("All");
+  const [selectedId, setSelectedId] = useState(EPISODES[0].id);
+  const visible = useMemo(() => EPISODES.filter((episode) => (category === "All" || episode.category === category) && `${episode.title} ${episode.summary} ${episode.category}`.toLowerCase().includes(query.toLowerCase())), [category, query]);
+  const selected = EPISODES.find((episode) => episode.id === selectedId) ?? visible[0] ?? EPISODES[0];
+
   return (
-    <Shell title="Podcast" subtitle="Episodes shelf with filters.">
-      <div className="mb-4 flex flex-wrap gap-2">
-        <input className={`${inputClass} max-w-sm`} placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} />
-        {["All", ...CATS].map((c) => (
-          <Button key={c} variant={cat === c ? "primary" : "secondary"} onClick={() => setCat(c)}>
-            {c}
-          </Button>
-        ))}
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {list.map((i) => (
-          <article key={i.id} className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="text-xs uppercase tracking-wide text-zinc-500">{i.category}</div>
-            <h2 className="mt-1 font-medium">{i.title}</h2>
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{i.summary}</p>
-            {i.meta ? <p className="mt-3 text-xs text-zinc-500">{i.meta}</p> : null}
+    <main className="broadcast-shell">
+      <div className="broadcast-frame">
+        <header className="broadcast-topbar">
+          <a href="https://bookchaowalit.com" className="broadcast-mark" aria-label="Bookchaowalit home"><span>ON</span> / AIR</a>
+          <span>EPISODE NOTEBOOK</span>
+          <span>{EPISODES.length} EPISODES / CATALOG ONLY</span>
+        </header>
+
+        <section className="broadcast-intro">
+          <div>
+            <h1>Find the voice<br /><em>behind the idea.</em></h1>
+            <p>An episode index for conversations about building, attention, and the systems that stay useful after the microphone is off.</p>
+          </div>
+          <div className="on-air-card" aria-hidden="true"><span>ON AIR</span><b>03</b><small>EPISODES<br />LOGGED</small></div>
+        </section>
+
+        <section className="broadcast-desk" aria-label="Podcast episode catalog">
+          <aside className="episode-rail">
+            <div className="rail-head"><span>EPISODE RAIL</span><span>{visible.length} FOUND</span></div>
+            <label className="episode-search"><span aria-hidden="true">⌕</span><span className="sr-only">Search episodes</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search voices or topics" /></label>
+            <div className="category-tabs" role="tablist" aria-label="Filter episodes">
+              {CATEGORIES.map((item) => <button type="button" role="tab" aria-selected={category === item} className={category === item ? "active" : ""} key={item} onClick={() => setCategory(item)}>{item}</button>)}
+            </div>
+            <div className="episode-list">
+              {visible.length ? visible.map((episode) => <button type="button" key={episode.id} className={`episode-row${selected.id === episode.id ? " selected" : ""}`} onClick={() => setSelectedId(episode.id)} aria-pressed={selected.id === episode.id}><span className="episode-number">{episode.id}</span><span className="episode-copy"><strong>{episode.title}</strong><small>{episode.summary}</small><em>{episode.meta}</em></span><span className="episode-mark" aria-hidden="true" /></button>) : <p className="empty-episodes">No episode matches this signal.</p>}
+            </div>
+          </aside>
+
+          <article className="episode-card">
+            <div className="card-head"><span>SELECTED TRANSMISSION / {selected.category.toUpperCase()}</span><span>READING CARD</span></div>
+            <div className="wave-stage"><SignalWave /><div className="wave-scan" aria-hidden="true" /></div>
+            <p className="episode-code">EPISODE {selected.id} / {selected.meta}</p>
+            <h2>{selected.title}</h2>
+            <p className="episode-summary">{selected.summary}</p>
+            <div className="episode-note"><span>FIELD NOTE</span><p>{selected.transcript}</p></div>
+            <div className="broadcast-honesty"><b>CATALOG ONLY</b> / No audio stream, subscription, or remote feed is attached to this demo.</div>
           </article>
-        ))}
+        </section>
+
+        <footer className="broadcast-footer"><span>BOOK / DEV TOOLS</span><span>SEARCH · FILTER · READ</span></footer>
       </div>
-    </Shell>
+    </main>
   );
 }
